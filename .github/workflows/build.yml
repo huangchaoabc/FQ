@@ -1,4 +1,4 @@
-name: Build FuckTomato APK
+name: Build & Release FuckTomato APK
 
 on:
   push:
@@ -26,8 +26,30 @@ jobs:
       - name: Build APK
         run: ./gradlew assembleDebug
 
-      - name: Upload APK
+      - name: Upload APK to Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: FuckTomato-APK
           path: app/build/outputs/apk/debug/app-debug.apk
+
+      # 新增：自动发布到 GitHub Releases
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ github.run_number }} # 用构建次数作为版本号，比如 v1、v2
+          release_name: FuckTomato v${{ github.run_number }}
+          draft: false
+          prerelease: false
+
+      - name: Upload APK to Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: app/build/outputs/apk/debug/app-debug.apk
+          asset_name: FuckTomato.apk
+          asset_content_type: application/vnd.android.package-archive
